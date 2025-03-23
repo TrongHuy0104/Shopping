@@ -1,7 +1,6 @@
 package com.example.shopping.data.repo
 
 import android.net.Uri
-import android.util.Log
 import com.example.shopping.common.ADD_TO_CART
 import com.example.shopping.common.ADD_TO_FAV
 import com.example.shopping.common.BANNER_COLLECTION
@@ -242,7 +241,6 @@ class RepoImpl @Inject constructor(
         }
         awaitClose { close() }
     }
-
 
     override fun addToCarts(cartDataModel: CartDataModel): Flow<ResultState<String>> =
         callbackFlow {

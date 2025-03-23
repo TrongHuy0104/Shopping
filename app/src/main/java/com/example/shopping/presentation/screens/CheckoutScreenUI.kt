@@ -1,6 +1,5 @@
 package com.example.shopping.presentation.screens
 
-import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +45,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.shopping.R
 import com.example.shopping.presentation.viewModels.ShoppingAppViewModel
+
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.firestore.FirebaseFirestore

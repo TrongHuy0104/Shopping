@@ -1,7 +1,6 @@
 package com.example.shopping.presentation.viewModels
 
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shopping.common.HomeScreenState
@@ -366,6 +365,7 @@ class ShoppingAppViewModel @Inject constructor(
                         is ResultState.Success -> {
                             _getProductByIdsState.value =
                                 _getProductByIdsState.value.copy(
+
                                     isLoading = false,
                                     userData = result.data
                                 )
@@ -387,8 +387,6 @@ class ShoppingAppViewModel @Inject constructor(
                 }
         }
     }
-
-
 
     fun addToCart(cartDataModel: CartDataModel) {
         viewModelScope.launch {
