@@ -30,5 +30,6 @@ interface Repo {
     fun getBanner(): Flow<ResultState<List<BannerDataModel>>>
     fun getSpecificCategoryItems(categoryName: String): Flow<ResultState<List<ProductDataModel>>>
     fun getALlSuggestProducts(): Flow<ResultState<List<ProductDataModel>>>
-
+    fun fetchPaymentIntent(amount: Int): Flow<ResultState<String>>
+    fun clearCart()
 }

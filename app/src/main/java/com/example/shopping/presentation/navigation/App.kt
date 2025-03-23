@@ -211,7 +211,8 @@ fun App(
                 composable<Routes.CheckoutScreen> {
                     val product: Routes.CheckoutScreen = it.toRoute()
                     val productIds: List<String> = product.productId.split(",")
-                    CheckoutScreen(navController = navController, productId = productIds, pay = startPayment)
+
+                    CheckoutScreen(navController = navController, productId = productIds, pay = startPayment,  totalAmount = product.totalAmount)
                 }
             }
         }

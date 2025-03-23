@@ -1,6 +1,7 @@
 package com.example.shopping.presentation.viewModels
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shopping.common.HomeScreenState
@@ -10,6 +11,7 @@ import com.example.shopping.domain.models.CategoryDataModel
 import com.example.shopping.domain.models.ProductDataModel
 import com.example.shopping.domain.models.UserData
 import com.example.shopping.domain.models.UserDataParent
+import com.example.shopping.domain.repo.Repo
 import com.example.shopping.domain.useCase.AddToCartUseCase
 import com.example.shopping.domain.useCase.AddToFavUseCase
 import com.example.shopping.domain.useCase.CreateUserUseCase
@@ -29,15 +31,18 @@ import com.example.shopping.domain.useCase.LoginUserUseCase
 import com.example.shopping.domain.useCase.UpdateUserUseCase
 import com.example.shopping.domain.useCase.UserProfileImageUseCase
 import com.example.shopping.domain.useCase.getCategoryInLimitUseCase
+import com.stripe.android.paymentsheet.PaymentSheetResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ShoppingAppViewModel @Inject constructor(
+    private val repo: Repo,
     private val createUserUseCase: CreateUserUseCase,
     private val loginUserUseCase: LoginUserUseCase,
     private val getUserUseCase: GetUserUseCase,
@@ -100,6 +105,9 @@ class ShoppingAppViewModel @Inject constructor(
     private val _getCheckoutState = MutableStateFlow(GetCheckoutState())
     val getCheckoutState = _getCheckoutState.asStateFlow()
 
+    private val _checkoutState = MutableStateFlow(CheckoutState())
+    val checkoutState = _checkoutState.asStateFlow()
+
     private val _getSpecificCategoryItemsState = MutableStateFlow(GetSpecificCategoryItemsState())
     val getSpecificCategoryItemsState = _getSpecificCategoryItemsState.asStateFlow()
 
@@ -108,6 +116,50 @@ class ShoppingAppViewModel @Inject constructor(
 
     private val _homeScreenState = MutableStateFlow(HomeScreenState())
     val homeScreenState = _homeScreenState.asStateFlow()
+
+    fun fetchPaymentIntent(amount: Int) {
+        viewModelScope.launch {
+            _checkoutState.value = _checkoutState.value.copy(isFetchingClientSecret = true)
+            repo.fetchPaymentIntent(amount).collect { result ->
+                when (result) {
+                    is ResultState.Success -> {
+                        _checkoutState.value = CheckoutState(
+                            isFetchingClientSecret = false,
+                            paymentIntentClientSecret = result.data
+                        )
+                    }
+                    is ResultState.Error -> {
+                        _checkoutState.value = CheckoutState(
+                            isFetchingClientSecret = false,
+                            errorMessage = result.message
+                        )
+                    }
+                    is ResultState.Loading -> {
+                        _checkoutState.value = CheckoutState(isFetchingClientSecret = true)
+                    }
+                }
+            }
+        }
+    }
+
+    fun onPaymentSheetResult(result: PaymentSheetResult) {
+        when (result) {
+            is PaymentSheetResult.Completed -> {
+                _checkoutState.update { it.copy(paymentSuccess = true) }
+            }
+            is PaymentSheetResult.Canceled -> { /* handle */ }
+            is PaymentSheetResult.Failed -> {
+                _checkoutState.update { it.copy(errorMessage = result.error.message) }
+            }
+        }
+    }
+
+    fun clearCart() {
+        repo.clearCart()
+    }
+
+
+
 
     fun getSpecificCategoryItems(categoryName: String) {
         viewModelScope.launch {
@@ -641,6 +693,13 @@ class ShoppingAppViewModel @Inject constructor(
         }
     }
 }
+
+data class CheckoutState(
+    val paymentIntentClientSecret: String? = null,
+    val paymentSuccess: Boolean = false,
+    val isFetchingClientSecret: Boolean = false,
+    val errorMessage: String? = null,
+)
 
 data class ProfileScreenState(
     val isLoading: Boolean = false,
