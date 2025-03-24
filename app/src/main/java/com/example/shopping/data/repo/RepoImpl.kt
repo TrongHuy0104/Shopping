@@ -22,6 +22,8 @@ import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class RepoImpl @Inject constructor(
@@ -402,33 +404,32 @@ class RepoImpl @Inject constructor(
         }
     }
 
-    override fun searchProducts(query: String): Flow<ResultState<List<ProductDataModel>>> = callbackFlow {
-        trySend(ResultState.Loading)
+    override fun searchProducts(query: String): Flow<ResultState<List<ProductDataModel>>> = flow {
+        emit(ResultState.Loading)
 
-        val queryRef = firebaseFirestore.collection(PRODUCT_COLLECTION)
-            .orderBy("name") // ✅ Bắt buộc Firestore phải có Index
-            .whereGreaterThanOrEqualTo("name", query)
-            .whereLessThanOrEqualTo("name", query + "\uf8ff")
-        queryRef.get()
-            .addOnSuccessListener { documents ->
-                Log.d("Search", "Query executed: $query") // ✅ Kiểm tra truy vấn có chạy không
-                if (documents.isEmpty) {
-                    Log.d("Search", "No matching products found!") // ✅ Nếu không có sản phẩm nào
-                } else {
-                    val products = documents.mapNotNull { document ->
-                        val product = document.toObject(ProductDataModel::class.java)
-                        product.copy(productId = document.id) // ✅ Gán document ID vào productId
-                    }
-                    Log.d("Search", "Firestore result: $products") // ✅ Kiểm tra danh sách sản phẩm
-                    trySend(ResultState.Success(products))
-                }
+        val normalizedQuery = query.lowercase().trim()
+        Log.d("Search Debug", "🔥 Query : $normalizedQuery")
+
+        try {
+            val snapshot = firebaseFirestore.collection(PRODUCT_COLLECTION).get().await()
+            val allProducts = snapshot.documents.mapNotNull { document ->
+                val product = document.toObject(ProductDataModel::class.java)
+                product?.copy(productId = document.id)
             }
-            .addOnFailureListener { exception ->
-                Log.e("Search", "Firestore Error: ${exception.message}") // ✅ Kiểm tra lỗi truy vấn
-                trySend(ResultState.Error(exception.message ?: "Unknown error"))
+
+            val filteredProducts = allProducts.filter { product ->
+                product.name.lowercase().contains(normalizedQuery)
             }
-        awaitClose { close() }
+
+            Log.d("Search Debug", "✅ result: $filteredProducts")
+            emit(ResultState.Success(filteredProducts))
+        } catch (e: Exception) {
+            Log.e("Search Debug", "🔥 error: ${e.message}")
+            emit(ResultState.Error(e.message ?: "Unknown error"))
+        }
     }
+
+
 
 }
 

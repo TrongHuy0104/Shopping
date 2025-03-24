@@ -37,6 +37,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -650,17 +652,18 @@ class ShoppingAppViewModel @Inject constructor(
     }
 
     fun searchProducts(query: String) {
-        if (query.isBlank()) {
-            _searchProductsState.value = SearchProductsState(userData = emptyList()) // Xóa kết quả nếu không có input
+        val normalizedQuery = query.lowercase().trim()
+
+        if (normalizedQuery.isBlank()) {
+            _searchProductsState.value = SearchProductsState(userData = emptyList())
             return
         }
 
         viewModelScope.launch {
-            searchProductsUseCase.execute(query)
-                .debounce(300)
+            flowOf(normalizedQuery)
                 .distinctUntilChanged()
+                .flatMapLatest { searchProductsUseCase.execute(it) }
                 .collect { result ->
-                    Log.d("Search", "Updating UI State: $result") // ✅ Debug cập nhật UI
                     when (result) {
                         is ResultState.Success -> {
                             _searchProductsState.value = _searchProductsState.value.copy(
@@ -680,8 +683,10 @@ class ShoppingAppViewModel @Inject constructor(
                     }
                 }
         }
+    }
 
-
+    fun clearSearchResults() {
+        _searchProductsState.value = SearchProductsState(userData = emptyList()) // 🔹
     }
 
 }

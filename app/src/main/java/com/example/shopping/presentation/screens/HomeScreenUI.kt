@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.lazy.LazyRow
@@ -54,6 +56,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -128,23 +131,21 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Ô tìm kiếm
                             TextField(
                                 value = searchQuery,
                                 onValueChange = { query ->
                                     searchQuery = query
                                     if (query.isNotEmpty()) {
                                         viewModel.searchProducts(query)
-                                        // Chỉ mở dropdown khi có focus và có kết quả
-                                        expanded = isFocused && searchResults.isNotEmpty()
                                     } else {
-                                        expanded = false
+                                        viewModel.clearSearchResults()
                                     }
+                                    expanded = isFocused && searchResults.isNotEmpty()
                                 },
                                 placeholder = { Text("Search...") },
                                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                 modifier = Modifier
-                                    .weight(1f) // 🔹 Chiếm toàn bộ không gian còn lại
+                                    .weight(1f)
                                     .height(50.dp)
                                     .focusRequester(focusRequester)
                                     .onFocusChanged { focusState ->
@@ -163,8 +164,6 @@ fun HomeScreen(
                                     onSearch = { keyboardController?.hide() }
                                 )
                             )
-
-                            // 🔔 Nút thông báo bên phải
                             IconButton(
                                 onClick = { /* TODO: Xử lý khi nhấn nút thông báo */ },
                                 modifier = Modifier.padding(start = 8.dp) // 🔹 Thêm khoảng cách giữa search và icon
@@ -176,41 +175,47 @@ fun HomeScreen(
                                 )
                             }
                         }
-
-                        // Dropdown hiển thị kết quả tìm kiếm
                         DropdownMenu(
-                            expanded = expanded,
+                            expanded = expanded && searchResults.isNotEmpty(),
                             onDismissRequest = { expanded = false },
                             modifier = Modifier
-                                .width(335.dp) // 🔹 Độ rộng bằng ô tìm kiếm
+                                .width(335.dp)
                                 .background(Color.White)
                         ) {
-                            searchResults.forEach { product ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        expanded = false
-                                        keyboardController?.hide()
-                                        navController.navigate(Routes.ProductDetailsScreen(product.productId))
-                                    },
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
+                            Box(
+                                modifier = Modifier
+                                    .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 2) // 🔹 Giới hạn 1/2 màn hình
+                                    .verticalScroll(rememberScrollState()) // ✅ Thay LazyColumn bằng Scrollable Column
+                            ) {
+                                Column {
+                                    searchResults.forEach { product ->
+                                        DropdownMenuItem(
+                                            onClick = {
+                                                expanded = false
+                                                keyboardController?.hide()
+                                                navController.navigate(Routes.ProductDetailsScreen(product.productId))
+                                            },
+                                            text = {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    AsyncImage(
+                                                        model = product.image,
+                                                        contentDescription = product.name,
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .clip(CircleShape),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                    Spacer(modifier = Modifier.width(10.dp))
+                                                    Text(product.name)
+                                                }
+                                            },
                                             modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            AsyncImage(
-                                                model = product.image,
-                                                contentDescription = product.name,
-                                                modifier = Modifier
-                                                    .size(40.dp)
-                                                    .clip(CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Text(product.name)
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
