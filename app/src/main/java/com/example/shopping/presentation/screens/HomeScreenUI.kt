@@ -1,5 +1,6 @@
 package com.example.shopping.presentation.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,11 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
@@ -38,13 +43,21 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -69,9 +82,22 @@ fun HomeScreen(
         viewModel.getAllSuggestedProductsState.collectAsStateWithLifecycle()
     val getSuggestedProductData: List<ProductDataModel> =
         getAllSuggestedProduct.value.userData.orEmpty().filterNotNull()
+    var searchQuery by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) } // Điều khiển dropdown mở/đóng
+    val searchState by viewModel.searchProductsState.collectAsStateWithLifecycle()
+    val searchResults by remember(searchState.userData) {
+        mutableStateOf(searchState.userData.orEmpty())
+    }
+
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var isFocused by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(key1 = Unit) {
         viewModel.getAllSuggestedProducts()
+        expanded = isFocused && searchQuery.isNotEmpty() && searchResults.isNotEmpty()
+        Log.d("Search", "UI received products: $searchResults")
     }
 
     if (homeState.isLoading) {
@@ -92,32 +118,101 @@ fun HomeScreen(
                         rememberScrollState()
                     )
             ) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(10.dp)
                 ) {
-                    TextField(
-                        value = "",
-                        onValueChange = {},
-                        placeholder = { Text("Search") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = TextFieldDefaults.textFieldColors(
-                            focusedIndicatorColor = Color.White,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-                    IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = null,
-                            modifier = Modifier.size(30.dp)
-                        )
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Ô tìm kiếm
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { query ->
+                                    searchQuery = query
+                                    if (query.isNotEmpty()) {
+                                        viewModel.searchProducts(query)
+                                        // Chỉ mở dropdown khi có focus và có kết quả
+                                        expanded = isFocused && searchResults.isNotEmpty()
+                                    } else {
+                                        expanded = false
+                                    }
+                                },
+                                placeholder = { Text("Search...") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                modifier = Modifier
+                                    .weight(1f) // 🔹 Chiếm toàn bộ không gian còn lại
+                                    .height(50.dp)
+                                    .focusRequester(focusRequester)
+                                    .onFocusChanged { focusState ->
+                                        isFocused = focusState.isFocused
+                                        expanded = focusState.isFocused && searchQuery.isNotEmpty() && searchResults.isNotEmpty()
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = TextFieldDefaults.textFieldColors(
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                keyboardOptions = KeyboardOptions.Default.copy(
+                                    imeAction = ImeAction.Search
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { keyboardController?.hide() }
+                                )
+                            )
+
+                            // 🔔 Nút thông báo bên phải
+                            IconButton(
+                                onClick = { /* TODO: Xử lý khi nhấn nút thông báo */ },
+                                modifier = Modifier.padding(start = 8.dp) // 🔹 Thêm khoảng cách giữa search và icon
+                            ) {
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    contentDescription = "Thông báo",
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
+                        }
+
+                        // Dropdown hiển thị kết quả tìm kiếm
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .width(335.dp) // 🔹 Độ rộng bằng ô tìm kiếm
+                                .background(Color.White)
+                        ) {
+                            searchResults.forEach { product ->
+                                DropdownMenuItem(
+                                    onClick = {
+                                        expanded = false
+                                        keyboardController?.hide()
+                                        navController.navigate(Routes.ProductDetailsScreen(product.productId))
+                                    },
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            AsyncImage(
+                                                model = product.image,
+                                                contentDescription = product.name,
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Text(product.name)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                     }
                 }
 
