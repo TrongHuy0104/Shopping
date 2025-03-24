@@ -1,5 +1,6 @@
 package com.example.shopping.presentation.screens
 
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import coil.compose.AsyncImage
 import com.example.shopping.R
 import com.example.shopping.domain.models.CartDataModel
 import com.example.shopping.domain.models.CategoryDataModel
+import com.example.shopping.presentation.navigation.Routes
 import com.example.shopping.presentation.viewModels.ShoppingAppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,7 +146,10 @@ fun CartScreen(
                         }
                         HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
                         Button(
-                            onClick = {},
+                            onClick = {
+                                val productIds = cartData.map { it?.productId }
+                                navController.navigate(Routes.CheckoutScreen(productId = productIds.toString()))
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 5.dp),

@@ -20,6 +20,7 @@ interface Repo {
     fun getProductsInLimited(): Flow<ResultState<List<ProductDataModel>>>
     fun getAllProducts(): Flow<ResultState<List<ProductDataModel>>>
     fun getProductById(productId: String): Flow<ResultState<ProductDataModel>>
+    fun getProductByIds(productId: List<String>): Flow<ResultState<List<ProductDataModel>>>
     fun addToCarts(cartDataModel: CartDataModel): Flow<ResultState<String>>
     fun addToFav(productDataModel: ProductDataModel): Flow<ResultState<String>>
     fun getAllFav(): Flow<ResultState<List<ProductDataModel>>>

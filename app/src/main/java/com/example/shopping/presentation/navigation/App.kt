@@ -52,6 +52,7 @@ import com.example.shopping.presentation.screens.CartScreen
 import com.example.shopping.presentation.screens.CheckoutScreen
 import com.example.shopping.presentation.screens.HomeScreen
 import com.example.shopping.presentation.screens.ProductDetailsScreen
+import com.example.shopping.presentation.screens.CategoryItemsScreen
 import com.example.shopping.presentation.screens.ProfileScreen
 import com.google.firebase.auth.FirebaseAuth
 
@@ -202,14 +203,15 @@ fun App(
                 }
                 composable<Routes.CategoryItemsScreen> {
                     val category: Routes.CategoryItemsScreen = it.toRoute()
-                    ProductDetailsScreen(
+                    CategoryItemsScreen(
                         navController = navController,
                         productId = category.categoryName
                     )
                 }
                 composable<Routes.CheckoutScreen> {
                     val product: Routes.CheckoutScreen = it.toRoute()
-                    CheckoutScreen(navController = navController, productId = product.productId, pay = startPayment)
+                    val productIds: List<String> = product.productId.split(",")
+                    CheckoutScreen(navController = navController, productId = productIds, pay = startPayment)
                 }
             }
         }

@@ -209,6 +209,40 @@ class RepoImpl @Inject constructor(
             }
         }
 
+    override fun getProductByIds(productId: List<String>): Flow<ResultState<List<ProductDataModel>>> = callbackFlow {
+        trySend(ResultState.Loading)
+        if (productId.isEmpty()) {
+            trySend(ResultState.Success(emptyList()))
+            close()
+            return@callbackFlow
+        }
+        val productIdList = productId.toString()
+            .removeSurrounding("[[", "]]")
+            .split(",")
+            .map { it.trim() }
+        val productsList = mutableListOf<ProductDataModel>()
+        var pendingRequests = productIdList.size
+
+        productIdList.forEach { productId ->
+            firebaseFirestore.collection(PRODUCT_COLLECTION).document(productId).get()
+                .addOnSuccessListener { document ->
+                    document.toObject(ProductDataModel::class.java)?.let { product ->
+                        productsList.add(product)
+                    }
+                    pendingRequests--
+                    if (pendingRequests == 0) {
+                        trySend(ResultState.Success(productsList))
+                        close()
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    trySend(ResultState.Error(exception.toString()))
+                    close()
+                }
+        }
+        awaitClose { close() }
+    }
+
     override fun addToCarts(cartDataModel: CartDataModel): Flow<ResultState<String>> =
         callbackFlow {
             trySend(ResultState.Loading)

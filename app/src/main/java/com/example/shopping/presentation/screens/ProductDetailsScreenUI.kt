@@ -152,7 +152,7 @@ fun ProductDetailsScreen(
                                         contentColor = if (selectedSize == size) Color.White else MaterialTheme.colorScheme.primary,
                                     )
                                 ) {
-                                    Text("size")
+                                    Text(size)
                                 }
                             }
                         }

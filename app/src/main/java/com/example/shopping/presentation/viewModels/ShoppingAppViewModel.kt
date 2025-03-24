@@ -22,6 +22,7 @@ import com.example.shopping.domain.useCase.GetBannerUseCase
 import com.example.shopping.domain.useCase.GetCartUseCase
 import com.example.shopping.domain.useCase.GetCheckoutUseCase
 import com.example.shopping.domain.useCase.GetProductByIdUseCase
+import com.example.shopping.domain.useCase.GetProductByIdsUseCase
 import com.example.shopping.domain.useCase.GetProductsInLimitUseCase
 import com.example.shopping.domain.useCase.GetSpecificCategoryItemsUseCase
 import com.example.shopping.domain.useCase.GetUserUseCase
@@ -50,6 +51,7 @@ class ShoppingAppViewModel @Inject constructor(
     private val getProductsInLimitUseCase: GetProductsInLimitUseCase,
     private val addToCartUseCase: AddToCartUseCase,
     private val getProductByIdUseCase: GetProductByIdUseCase,
+    private val getProductByIdsUseCase: GetProductByIdsUseCase,
     private val addToFavUseCase: AddToFavUseCase,
     private val getAllFavUseCase: GetAllFavUseCase,
     private val getAllCategoriesUseCase: GetAllCategoriesUseCase,
@@ -81,6 +83,9 @@ class ShoppingAppViewModel @Inject constructor(
 
     private val _getProductByIdState = MutableStateFlow(GetProductByIdState())
     val getProductByIdState = _getProductByIdState.asStateFlow()
+
+    private val _getProductByIdsState = MutableStateFlow(GetProductByIdsState())
+    val getProductByIdsState = _getProductByIdsState.asStateFlow()
 
     private val _addToFavState = MutableStateFlow(AddToFavState())
     val addToFavState = _addToFavState.asStateFlow()
@@ -322,27 +327,66 @@ class ShoppingAppViewModel @Inject constructor(
         }
     }
 
-    fun getProductById(productId: String) {
+        fun getProductById(productId: String) {
+            viewModelScope.launch {
+                getProductByIdUseCase.getProductById(productId)
+                    .collect { result ->
+                        when (result) {
+                            is ResultState.Success -> {
+                                _getProductByIdState.value =
+                                    _getProductByIdState.value.copy(
+                                        isLoading = false,
+                                        userData = result.data
+                                    )
+                            }
+
+                            is ResultState.Loading -> {
+                                _getProductByIdState.value =
+                                    _getProductByIdState.value.copy(isLoading = true)
+                            }
+
+                            is ResultState.Error -> {
+                                _getProductByIdState.value =
+                                    _getProductByIdState.value.copy(
+                                        isLoading = false,
+                                        errorMessage = result.message
+                                    )
+                            }
+                        }
+                    }
+            }
+        }
+
+    fun getProductsByIds(productIds: List<String>) {
+        val productIdList = productIds.toString()
+            .removeSurrounding("[[", "]]")
+            .split(",")
+            .map { it.trim() }
         viewModelScope.launch {
-            getProductByIdUseCase.getProductById(productId)
-                .collect { result ->
+            _getProductByIdsState.value = GetProductByIdsState(isLoading = true)
+
+            val productList = mutableListOf<ProductDataModel>()
+
+
+                getProductByIdsUseCase.getProductByIds(productIdList).collect { result ->
                     when (result) {
                         is ResultState.Success -> {
-                            _getProductByIdState.value =
-                                _getProductByIdState.value.copy(
+                            _getProductByIdsState.value =
+                                _getProductByIdsState.value.copy(
+
                                     isLoading = false,
                                     userData = result.data
                                 )
                         }
 
                         is ResultState.Loading -> {
-                            _getProductByIdState.value =
-                                _getProductByIdState.value.copy(isLoading = true)
+                            _getProductByIdsState.value =
+                                _getProductByIdsState.value.copy(isLoading = true)
                         }
 
                         is ResultState.Error -> {
-                            _getProductByIdState.value =
-                                _getProductByIdState.value.copy(
+                            _getProductByIdsState.value =
+                                _getProductByIdsState.value.copy(
                                     isLoading = false,
                                     errorMessage = result.message
                                 )
@@ -681,6 +725,12 @@ data class AddToCartState(
 data class GetProductByIdState(
     val isLoading: Boolean = false,
     val userData: ProductDataModel? = null,
+    val errorMessage: String? = null
+)
+
+data class GetProductByIdsState(
+    val isLoading: Boolean = false,
+    val userData: List<ProductDataModel>? = null,
     val errorMessage: String? = null
 )
 

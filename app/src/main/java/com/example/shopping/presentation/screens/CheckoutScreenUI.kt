@@ -46,17 +46,24 @@ import coil.compose.AsyncImage
 import com.example.shopping.R
 import com.example.shopping.presentation.viewModels.ShoppingAppViewModel
 
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.firestore.FirebaseFirestore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckoutScreen(
     navController: NavController,
-    productId: String,
+    productId: List<String>,
     viewModel: ShoppingAppViewModel = hiltViewModel(),
     pay: () -> Unit
 ) {
-    val state = viewModel.getProductByIdState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val state = viewModel.getProductByIdsState.collectAsStateWithLifecycle()
     val productData = state.value.userData
-
+    val productIdList = productId.toString()
+        .removeSurrounding("[[", "]]")
+        .split(",")
+        .map { it.trim() }
     val email = remember { mutableStateOf("") }
     val country = remember { mutableStateOf("") }
     val firstName = remember { mutableStateOf("") }
@@ -67,7 +74,31 @@ fun CheckoutScreen(
     val selectedMethod = remember { mutableStateOf("Standard FREE delivery over Rs. 4500") }
 
     LaunchedEffect(key1 = Unit) {
-        viewModel.getProductById(productId)
+        viewModel.getProductsByIds(productIdList)
+    }
+
+    fun addOrderToFirebase() {
+        val order = hashMapOf(
+            "email" to email.value,
+            "country" to country.value,
+            "firstName" to firstName.value,
+            "lastName" to lastName.value,
+            "address" to address.value,
+            "city" to city.value,
+            "postalCode" to postalCode.value,
+            "selectedMethod" to selectedMethod.value,
+            "products" to productData?.map { mapOf("name" to it.name, "price" to it.price) },
+            "timestamp" to System.currentTimeMillis()
+        )
+
+        FirebaseFirestore.getInstance().collection("orders")
+            .add(order)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Buy Successfully", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Order Failed", Toast.LENGTH_SHORT).show()
+            }
     }
 
     Scaffold(
@@ -102,7 +133,7 @@ fun CheckoutScreen(
                 }
             }
 
-            productData == null -> {
+            productData.isNullOrEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -120,28 +151,33 @@ fun CheckoutScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        AsyncImage(
-                            model = state.value.userData!!.image,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(80.dp)
-                                .border(1.dp, Color.Gray)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = state.value.userData!!.name,
-                                style = MaterialTheme.typography.bodyLarge
+                    // Hiển thị danh sách sản phẩm
+                    productData.forEach { product ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = product.image,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .border(1.dp, Color.Gray)
                             )
-                            Text(
-                                text = "$${state.value.userData!!.finalPrice}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = product.name,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = "$${product.price}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Form nhập thông tin giao hàng
                     Column {
                         Text("Contact Information", style = MaterialTheme.typography.headlineSmall)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -160,7 +196,7 @@ fun CheckoutScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = country.value,
-                            onValueChange = { email.value = it },
+                            onValueChange = { country.value = it },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("Country/Region") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
@@ -239,7 +275,7 @@ fun CheckoutScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            pay.invoke()
+                            addOrderToFirebase()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(colorResource(id = R.color.orange))
