@@ -54,6 +54,7 @@ import com.example.shopping.presentation.screens.HomeScreen
 import com.example.shopping.presentation.screens.ProductDetailsScreen
 import com.example.shopping.presentation.screens.CategoryItemsScreen
 import com.example.shopping.presentation.screens.ProfileScreen
+import com.example.shopping.presentation.screens.OrderSuccessScreen
 import com.google.firebase.auth.FirebaseAuth
 
 data class BottomNavItem(val name: String, val icon: ImageVector, val unselectedIcon: ImageVector)
@@ -213,6 +214,10 @@ fun App(
                     val productIds: List<String> = product.productId.split(",")
 
                     CheckoutScreen(navController = navController, productId = productIds, pay = startPayment,  totalAmount = product.totalAmount)
+                }
+                composable<Routes.OrderSuccessScreen> {
+                    val route: Routes.OrderSuccessScreen = it.toRoute()
+                    OrderSuccessScreen(navController = navController, orderId = route.orderId)
                 }
             }
         }

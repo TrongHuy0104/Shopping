@@ -79,7 +79,7 @@ fun CheckoutScreen(
     val address = remember { mutableStateOf("") }
     val city = remember { mutableStateOf("") }
     val postalCode = remember { mutableStateOf("") }
-    val selectedMethod = remember { mutableStateOf("Standard FREE delivery over Rs. 4500") }
+    val selectedMethod = remember { mutableStateOf("Standard FREE delivery over $4500") }
 
     val paymentSheet = rememberPaymentSheet(viewModel::onPaymentSheetResult)
 
@@ -104,7 +104,7 @@ fun CheckoutScreen(
         }
     }
 
-    fun addOrderToFirebase() {
+    fun addOrderToFirebase(onSuccess: (String) -> Unit) {
         val order = hashMapOf(
             "email" to email.value,
             "country" to country.value,
@@ -120,8 +120,10 @@ fun CheckoutScreen(
 
         FirebaseFirestore.getInstance().collection("orders")
             .add(order)
-            .addOnSuccessListener {
+            .addOnSuccessListener { documentReference ->
                 Toast.makeText(context, "Buy Successfully", Toast.LENGTH_SHORT).show()
+                val newOrderId = documentReference.id
+                onSuccess(newOrderId)
             }
             .addOnFailureListener {
                 Toast.makeText(context, "Order Failed", Toast.LENGTH_SHORT).show()
@@ -135,7 +137,10 @@ fun CheckoutScreen(
             viewModel.clearCart()
 
             // 2. Ghi đơn hàng
-            addOrderToFirebase()
+            addOrderToFirebase{ newOrderId ->
+                navController.navigate(Routes.OrderSuccessScreen(newOrderId))
+            }
+
 
             // 3. Hiển thị thông báo
             Toast.makeText(context, "Payment successful!", Toast.LENGTH_SHORT).show()
@@ -306,21 +311,21 @@ fun CheckoutScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
-                                selected = selectedMethod.value == "Standard FREE delivery over Rs. 4500",
+                                selected = selectedMethod.value == "Standard FREE delivery over $4500",
                                 onClick = {
-                                    selectedMethod.value = "Standard FREE delivery over 4500"
+                                    selectedMethod.value = "Standard FREE delivery over $4500"
                                 })
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Standard FREE delivery over 4500")
+                            Text("Standard FREE delivery over $4500")
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
-                                selected = selectedMethod.value == "Cash on delivery Rs.50",
+                                selected = selectedMethod.value == "Cash on delivery $50",
                                 onClick = {
-                                    selectedMethod.value = "Cash on delivery Rs.50"
+                                    selectedMethod.value = "Cash on delivery $50"
                                 })
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Cash on delivery Rs.50")
+                            Text("Cash on delivery $50")
                         }
                     }
 

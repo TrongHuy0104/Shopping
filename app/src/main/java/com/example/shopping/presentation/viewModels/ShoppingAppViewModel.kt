@@ -8,6 +8,7 @@ import com.example.shopping.common.HomeScreenState
 import com.example.shopping.common.ResultState
 import com.example.shopping.domain.models.CartDataModel
 import com.example.shopping.domain.models.CategoryDataModel
+import com.example.shopping.domain.models.OrderDataModel
 import com.example.shopping.domain.models.ProductDataModel
 import com.example.shopping.domain.models.UserData
 import com.example.shopping.domain.models.UserDataParent
@@ -32,6 +33,7 @@ import com.example.shopping.domain.useCase.SearchProductsUseCase
 import com.example.shopping.domain.useCase.UpdateUserUseCase
 import com.example.shopping.domain.useCase.UserProfileImageUseCase
 import com.example.shopping.domain.useCase.getCategoryInLimitUseCase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,8 +69,10 @@ class ShoppingAppViewModel @Inject constructor(
     private val getAllSuggestProductsUseCase: GetAllSuggestProductsUseCase,
     private val getAllProductsUseCase: GetAllProductsUseCase,
     private val getCartUseCase: GetCartUseCase,
-    private val searchProductsUseCase: SearchProductsUseCase
-) : ViewModel() {
+    private val searchProductsUseCase: SearchProductsUseCase,
+    private val firestore: FirebaseFirestore,
+
+    ) : ViewModel() {
     private val _signUpScreenState = MutableStateFlow(SignUpScreenState())
     val signUpScreenState = _signUpScreenState.asStateFlow()
 
@@ -122,6 +126,9 @@ class ShoppingAppViewModel @Inject constructor(
 
     private val _homeScreenState = MutableStateFlow(HomeScreenState())
     val homeScreenState = _homeScreenState.asStateFlow()
+
+    private val _orderDetailState = MutableStateFlow(OrderDetailState())
+    val orderDetailState = _orderDetailState.asStateFlow()
 
     fun fetchPaymentIntent(amount: Int) {
         viewModelScope.launch {
@@ -739,6 +746,26 @@ class ShoppingAppViewModel @Inject constructor(
         _searchProductsState.value = SearchProductsState(userData = emptyList()) // 🔹
     }
 
+    fun getOrderDetails(orderId: String) {
+        viewModelScope.launch {
+            firestore.collection("orders")
+                .document(orderId)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        val orderData = document.toObject(OrderDataModel::class.java)
+                        _orderDetailState.value = OrderDetailState(orderData = orderData)
+                    } else {
+                        _orderDetailState.value = OrderDetailState(errorMessage = "Order not found")
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    _orderDetailState.value = OrderDetailState(errorMessage = exception.localizedMessage)
+                }
+        }
+    }
+
+
 }
 
 data class CheckoutState(
@@ -847,5 +874,11 @@ data class GetAllSuggestedProductsState(
 data class SearchProductsState(
     val isLoading: Boolean = false,
     val userData: List<ProductDataModel> = emptyList(),
+    val errorMessage: String? = null
+)
+
+data class OrderDetailState(
+    val isLoading: Boolean = false,
+    val orderData: OrderDataModel? = null,
     val errorMessage: String? = null
 )

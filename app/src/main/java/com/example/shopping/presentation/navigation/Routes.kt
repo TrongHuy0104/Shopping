@@ -47,4 +47,7 @@ sealed class Routes {
     @Serializable
     data class CategoryItemsScreen(val categoryName: String)
 
+    @Serializable
+    data class OrderSuccessScreen(val orderId: String)
+
 }
