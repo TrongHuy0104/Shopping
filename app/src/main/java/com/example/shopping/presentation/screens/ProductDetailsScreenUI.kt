@@ -203,7 +203,7 @@ fun ProductDetailsScreen(
                         }
 
                         Button(
-                            onClick = { navController.navigate((Routes.CheckoutScreen(productId))) },
+                            onClick = { navController.navigate((Routes.CheckoutScreen(productId = listOf(productId).toString()))) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(colorResource(id = R.color.orange))
                         ) {
