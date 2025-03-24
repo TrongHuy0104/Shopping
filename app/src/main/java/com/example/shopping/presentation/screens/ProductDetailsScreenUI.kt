@@ -62,13 +62,22 @@ fun ProductDetailsScreen(
     val state = viewModel.getProductByIdState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
+    val favState = viewModel.getAllFavState.collectAsStateWithLifecycle()
     var selectedSize by remember { mutableStateOf("") }
     var quantity by remember { mutableIntStateOf(1) }
     var isFavorite by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = Unit) {
         viewModel.getProductById(productId)
+        viewModel.getAllFav()
     }
+    // Tự động cập nhật trạng thái trái tim
+    LaunchedEffect(favState.value.userData, state.value.userData) {
+        val favList = favState.value.userData.filterNotNull()
+        val currentProductId = state.value.userData?.productId
+        isFavorite = favList.any { it.productId == currentProductId }
+    }
+
 
     Scaffold(
         modifier = Modifier
@@ -203,17 +212,23 @@ fun ProductDetailsScreen(
                         }
 
                         Button(
-                            onClick = { navController.navigate((Routes.CheckoutScreen(productId = listOf(productId).toString()))) },
+                            onClick = {
+                                val totalAmount = (product.price.toIntOrNull() ?: 0) * quantity
+                                navController.navigate(Routes.CheckoutScreen(productId = listOf(productId).toString(), totalAmount = totalAmount))
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(colorResource(id = R.color.orange))
                         ) {
                             Text("Buy now")
                         }
 
+
                         OutlinedButton(
                             onClick = {
+                                if (!isFavorite) {
+                                    viewModel.addToFav(product)
+                                }
                                 isFavorite = !isFavorite
-                                viewModel.addToFav(product)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

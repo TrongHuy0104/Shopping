@@ -60,6 +60,7 @@ fun CartScreen(
     val cartData = cartState.value.userData ?: emptyList()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
+
     LaunchedEffect(key1 = Unit) {
         viewModel.getCartUseCase()
     }
@@ -148,7 +149,10 @@ fun CartScreen(
                         Button(
                             onClick = {
                                 val productIds = cartData.map { it?.productId }
-                                navController.navigate(Routes.CheckoutScreen(productId = productIds.toString()))
+                                val totalAmount = cartData.filterNotNull().sumOf {
+                                    it.price.toIntOrNull() ?: 0 * (it.quantity.toIntOrNull() ?: 1)
+                                }
+                                navController.navigate(Routes.CheckoutScreen(productId = productIds.toString(), totalAmount))
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

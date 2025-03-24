@@ -30,7 +30,7 @@ sealed class Routes {
     object CartScreen
 
     @Serializable
-    data class CheckoutScreen(val productId: String)
+    data class CheckoutScreen(val productId: String, val totalAmount: Int)
 
     @Serializable
     object PaymentScreen
