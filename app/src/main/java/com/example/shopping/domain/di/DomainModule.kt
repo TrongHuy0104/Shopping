@@ -26,7 +26,7 @@ object DomainModule {
 
     @Provides
     fun provideRetrofit(): Retrofit = Retrofit.Builder()
-        .baseUrl("http://10.0.2.2:3000/") // Use 10.0.2.2 to access localhost in emulator
+        .baseUrl("https://prm-392-stripe-server.vercel.app/") // Use 10.0.2.2 to access localhost in emulator
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 

@@ -10,6 +10,6 @@ data class PaymentResponse(val clientSecret: String)
 
 interface PaymentApi {
     @Headers("Content-Type: application/json")
-    @POST("/api/payments/create-payment-intent")
+    @POST("/api/create-payment-intent")
     suspend fun createPaymentIntent(@Body request: PaymentRequest): Response<PaymentResponse>
 }
