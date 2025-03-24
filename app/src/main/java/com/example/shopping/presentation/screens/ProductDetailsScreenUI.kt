@@ -214,7 +214,7 @@ fun ProductDetailsScreen(
                         Button(
                             onClick = {
                                 val totalAmount = (product.price.toIntOrNull() ?: 0) * quantity
-                                navController.navigate(Routes.CheckoutScreen(productId = product.productId, totalAmount = totalAmount))
+                                navController.navigate(Routes.CheckoutScreen(productId = listOf(productId).toString(), totalAmount = totalAmount))
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(colorResource(id = R.color.orange))

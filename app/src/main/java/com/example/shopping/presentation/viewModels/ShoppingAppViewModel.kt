@@ -28,6 +28,7 @@ import com.example.shopping.domain.useCase.GetProductsInLimitUseCase
 import com.example.shopping.domain.useCase.GetSpecificCategoryItemsUseCase
 import com.example.shopping.domain.useCase.GetUserUseCase
 import com.example.shopping.domain.useCase.LoginUserUseCase
+import com.example.shopping.domain.useCase.SearchProductsUseCase
 import com.example.shopping.domain.useCase.UpdateUserUseCase
 import com.example.shopping.domain.useCase.UserProfileImageUseCase
 import com.example.shopping.domain.useCase.getCategoryInLimitUseCase
@@ -37,6 +38,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -61,7 +64,8 @@ class ShoppingAppViewModel @Inject constructor(
     private val getSpecificCategoryItemsUseCase: GetSpecificCategoryItemsUseCase,
     private val getAllSuggestProductsUseCase: GetAllSuggestProductsUseCase,
     private val getAllProductsUseCase: GetAllProductsUseCase,
-    private val getCartUseCase: GetCartUseCase
+    private val getCartUseCase: GetCartUseCase,
+    private val searchProductsUseCase: SearchProductsUseCase
 ) : ViewModel() {
     private val _signUpScreenState = MutableStateFlow(SignUpScreenState())
     val signUpScreenState = _signUpScreenState.asStateFlow()
@@ -160,6 +164,8 @@ class ShoppingAppViewModel @Inject constructor(
 
 
 
+    private val _searchProductsState = MutableStateFlow(SearchProductsState())
+    val searchProductsState = _searchProductsState.asStateFlow()
 
     fun getSpecificCategoryItems(categoryName: String) {
         viewModelScope.launch {
@@ -692,6 +698,42 @@ class ShoppingAppViewModel @Inject constructor(
                 }
         }
     }
+
+    fun searchProducts(query: String) {
+        if (query.isBlank()) {
+            _searchProductsState.value = SearchProductsState(userData = emptyList()) // Xóa kết quả nếu không có input
+            return
+        }
+
+        viewModelScope.launch {
+            searchProductsUseCase.execute(query)
+                .debounce(300)
+                .distinctUntilChanged()
+                .collect { result ->
+                    Log.d("Search", "Updating UI State: $result") // ✅ Debug cập nhật UI
+                    when (result) {
+                        is ResultState.Success -> {
+                            _searchProductsState.value = _searchProductsState.value.copy(
+                                isLoading = false,
+                                userData = result.data ?: emptyList()
+                            )
+                        }
+                        is ResultState.Loading -> {
+                            _searchProductsState.value = _searchProductsState.value.copy(isLoading = true)
+                        }
+                        is ResultState.Error -> {
+                            _searchProductsState.value = _searchProductsState.value.copy(
+                                isLoading = false,
+                                errorMessage = result.message ?: "Unknown error"
+                            )
+                        }
+                    }
+                }
+        }
+
+
+    }
+
 }
 
 data class CheckoutState(
@@ -794,5 +836,11 @@ data class GetSpecificCategoryItemsState(
 data class GetAllSuggestedProductsState(
     val isLoading: Boolean = false,
     val userData: List<ProductDataModel?> = emptyList(),
+    val errorMessage: String? = null
+)
+
+data class SearchProductsState(
+    val isLoading: Boolean = false,
+    val userData: List<ProductDataModel> = emptyList(),
     val errorMessage: String? = null
 )

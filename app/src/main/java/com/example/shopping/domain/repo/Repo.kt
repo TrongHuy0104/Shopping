@@ -32,4 +32,5 @@ interface Repo {
     fun getALlSuggestProducts(): Flow<ResultState<List<ProductDataModel>>>
     fun fetchPaymentIntent(amount: Int): Flow<ResultState<String>>
     fun clearCart()
+    fun searchProducts(query: String): Flow<ResultState<List<ProductDataModel>>>
 }

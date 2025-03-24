@@ -1,6 +1,7 @@
 package com.example.shopping.data.repo
 
 import android.net.Uri
+import android.util.Log
 import com.example.shopping.common.ADD_TO_CART
 import com.example.shopping.common.ADD_TO_FAV
 import com.example.shopping.common.BANNER_COLLECTION
@@ -434,5 +435,34 @@ class RepoImpl @Inject constructor(
             close()
         }
     }
+
+    override fun searchProducts(query: String): Flow<ResultState<List<ProductDataModel>>> = callbackFlow {
+        trySend(ResultState.Loading)
+
+        val queryRef = firebaseFirestore.collection(PRODUCT_COLLECTION)
+            .orderBy("name") // ✅ Bắt buộc Firestore phải có Index
+            .whereGreaterThanOrEqualTo("name", query)
+            .whereLessThanOrEqualTo("name", query + "\uf8ff")
+        queryRef.get()
+            .addOnSuccessListener { documents ->
+                Log.d("Search", "Query executed: $query") // ✅ Kiểm tra truy vấn có chạy không
+                if (documents.isEmpty) {
+                    Log.d("Search", "No matching products found!") // ✅ Nếu không có sản phẩm nào
+                } else {
+                    val products = documents.mapNotNull { document ->
+                        val product = document.toObject(ProductDataModel::class.java)
+                        product.copy(productId = document.id) // ✅ Gán document ID vào productId
+                    }
+                    Log.d("Search", "Firestore result: $products") // ✅ Kiểm tra danh sách sản phẩm
+                    trySend(ResultState.Success(products))
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("Search", "Firestore Error: ${exception.message}") // ✅ Kiểm tra lỗi truy vấn
+                trySend(ResultState.Error(exception.message ?: "Unknown error"))
+            }
+        awaitClose { close() }
+    }
+
 }
 
