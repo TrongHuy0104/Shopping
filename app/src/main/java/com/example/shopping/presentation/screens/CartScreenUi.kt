@@ -203,7 +203,7 @@ fun CartItemCard(item: CartDataModel) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = "Price: ${item.price}",
+                    text = "Price: $${item.price}",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
                 )

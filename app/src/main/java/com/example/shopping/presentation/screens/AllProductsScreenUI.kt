@@ -54,7 +54,7 @@ fun AllProducts(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "All Productsl") },
+                title = { Text(text = "All Products") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
