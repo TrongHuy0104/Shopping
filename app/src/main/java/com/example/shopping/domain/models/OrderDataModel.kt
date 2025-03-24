@@ -15,5 +15,7 @@ data class OrderDataModel(
 
 data class ProductOrder(
     val name: String = "",
-    val price: String = ""
+    val price: String = "",
+    val image: String = "",
+    var quantity: Int = 1
 )

@@ -114,7 +114,7 @@ fun CheckoutScreen(
             "city" to city.value,
             "postalCode" to postalCode.value,
             "selectedMethod" to selectedMethod.value,
-            "products" to productData?.map { mapOf("name" to it.name, "price" to it.price) },
+            "products" to productData?.map { mapOf("name" to it.name, "price" to it.price, "image" to it.image) },
             "timestamp" to System.currentTimeMillis()
         )
 
