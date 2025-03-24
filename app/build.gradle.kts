@@ -23,8 +23,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        val stripeKey: String = project.findProperty("STRIPE_PUBLISHABLE_KEY") as? String ?: ""
-        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"$stripeKey\"")
     }
 
     buildTypes {
@@ -45,7 +43,6 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -109,15 +106,5 @@ dependencies {
 //
 //    //custom bottom nev bar
     implementation("com.canopas.compose-animated-navigationbar:bottombar:1.0.1")
-    // stripe
-    implementation ("com.stripe:stripe-android:20.48.6")
 
-    // Retrofit
-    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-
-    // Gson converter for Retrofit
-    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
-
-    // (Optional) Logging interceptor to debug API calls
-    implementation ("com.squareup.okhttp3:logging-interceptor:4.12.0")
 }

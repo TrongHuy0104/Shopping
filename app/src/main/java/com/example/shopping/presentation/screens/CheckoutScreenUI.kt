@@ -47,21 +47,13 @@ import com.example.shopping.R
 import com.example.shopping.presentation.viewModels.ShoppingAppViewModel
 
 import android.widget.Toast
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
-import com.example.shopping.BuildConfig
-import com.example.shopping.presentation.navigation.Routes
 import com.google.firebase.firestore.FirebaseFirestore
-import com.stripe.android.PaymentConfiguration
-import com.stripe.android.paymentsheet.PaymentSheet
-import com.stripe.android.paymentsheet.rememberPaymentSheet
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckoutScreen(
     navController: NavController,
     productId: List<String>,
-    totalAmount: Int,
     viewModel: ShoppingAppViewModel = hiltViewModel(),
     pay: () -> Unit
 ) {
@@ -81,27 +73,8 @@ fun CheckoutScreen(
     val postalCode = remember { mutableStateOf("") }
     val selectedMethod = remember { mutableStateOf("Standard FREE delivery over Rs. 4500") }
 
-    val paymentSheet = rememberPaymentSheet(viewModel::onPaymentSheetResult)
-
-    val checkoutState by viewModel.checkoutState.collectAsStateWithLifecycle()
-
     LaunchedEffect(key1 = Unit) {
         viewModel.getProductsByIds(productIdList)
-    }
-//    LaunchedEffect(totalAmount) {
-//        viewModel.fetchPaymentIntent(totalAmount)
-//    }
-    LaunchedEffect(checkoutState.paymentIntentClientSecret) {
-        checkoutState.paymentIntentClientSecret?.let { secret ->
-            PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY)
-            paymentSheet.presentWithPaymentIntent(
-                secret,
-                PaymentSheet.Configuration(
-                    merchantDisplayName = "Clothing Store",
-                    allowsDelayedPaymentMethods = true
-                )
-            )
-        }
     }
 
     fun addOrderToFirebase() {
@@ -126,31 +99,6 @@ fun CheckoutScreen(
             .addOnFailureListener {
                 Toast.makeText(context, "Order Failed", Toast.LENGTH_SHORT).show()
             }
-
-    }
-
-    LaunchedEffect(checkoutState.paymentSuccess) {
-        if (checkoutState.paymentSuccess) {
-            // 1. Clear Cart
-            viewModel.clearCart()
-
-            // 2. Ghi đơn hàng
-            addOrderToFirebase()
-
-            // 3. Hiển thị thông báo
-            Toast.makeText(context, "Payment successful!", Toast.LENGTH_SHORT).show()
-
-            // 4. Chuyển hướng về Home và xoá backstack
-            navController.navigate(Routes.HomeScreen) {
-                popUpTo(0)
-            }
-        }
-    }
-
-    LaunchedEffect(checkoutState.errorMessage) {
-        checkoutState.errorMessage?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-        }
     }
 
     Scaffold(
@@ -327,8 +275,7 @@ fun CheckoutScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
-//                            addOrderToFirebase()
-                            viewModel.fetchPaymentIntent(totalAmount)
+                            addOrderToFirebase()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(colorResource(id = R.color.orange))

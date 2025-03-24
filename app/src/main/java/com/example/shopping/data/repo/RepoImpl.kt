@@ -9,8 +9,6 @@ import com.example.shopping.common.CATEGORY_COLLECTION
 import com.example.shopping.common.PRODUCT_COLLECTION
 import com.example.shopping.common.ResultState
 import com.example.shopping.common.USER_COLLECTION
-import com.example.shopping.data.remote.PaymentApi
-import com.example.shopping.data.remote.PaymentRequest
 import com.example.shopping.domain.models.BannerDataModel
 import com.example.shopping.domain.models.CartDataModel
 import com.example.shopping.domain.models.CategoryDataModel
@@ -28,40 +26,8 @@ import javax.inject.Inject
 
 class RepoImpl @Inject constructor(
     var firebaseAuth: FirebaseAuth,
-    var firebaseFirestore: FirebaseFirestore,
-    private val paymentApi: PaymentApi
+    var firebaseFirestore: FirebaseFirestore
 ) : Repo {
-
-    override fun clearCart() {
-        val userId = firebaseAuth.currentUser?.uid ?: return
-        firebaseFirestore.collection(ADD_TO_CART).document(userId)
-            .collection("User_Cart")
-            .get()
-            .addOnSuccessListener { querySnapshot ->
-                for (document in querySnapshot.documents) {
-                    document.reference.delete()
-                }
-            }
-    }
-
-
-    override fun fetchPaymentIntent(amount: Int): Flow<ResultState<String>> = callbackFlow {
-        trySend(ResultState.Loading)
-
-        try {
-            val response = paymentApi.createPaymentIntent(PaymentRequest(amount))
-            if (response.isSuccessful && response.body() != null) {
-                trySend(ResultState.Success(response.body()!!.clientSecret))
-            } else {
-                trySend(ResultState.Error("Failed to create PaymentIntent: ${response.message()}"))
-            }
-        } catch (e: Exception) {
-            trySend(ResultState.Error(e.localizedMessage ?: "Unknown error"))
-        }
-
-        awaitClose { close() }
-    }
-
     override fun registerUserWithEmailAndPassword(userData: UserData): Flow<ResultState<String>> =
         callbackFlow {
 
